@@ -18,4 +18,15 @@ const vinylSchema = new mongoose.Schema({
   timestamps: true
 })
 
+// create a compound index for vinyl schema to prevent duplicate entries
+// TODO for production https://mongoosejs.com/docs/guide.html#indexes
+vinylSchema.index(
+  {
+    vinyl_id: 1,
+    collection_type: 1,
+    owner: 1
+  },
+  {unique: true}
+)
+
 module.exports = mongoose.model('Vinyl', vinylSchema)
