@@ -28,15 +28,28 @@ const requireToken = passport.authenticate('bearer', { session: false })
 // instantiate a router (mini app that only handles routes)
 const router = express.Router()
 
+// instantiate axios
+const axios = require('axios')
+
 // INDEX
 // GET /vinyls
 router.get('/vinyls', requireToken, (req, res) => {
   Vinyl.find({owner: req.user._id})
-    .then(vinyls => {
-      // `vinyls` will be an array of Mongoose documents
-      // we want to convert each one to a POJO, so we use `.map` to
-      // apply `.toObject` to each one
-      return vinyls.map(vinyl => vinyl.toObject())
+    // get back a list of records containing vinyl_id
+    // this id is used to then fetch data from the discogs api
+    // map through each of the vinyls returned from the db and make
+    // request to api with axios.
+    // the map will results in an array of promises which is then
+    // passed into Promise.all which resolves when every promise in
+    // then array resolves.
+    // Promise.all returns an array of all the promise values
+    // return the data from each of the calls
+    .then(async vinyls => {
+      const results = (await Promise.all(vinyls.map(v => {
+        return axios(`https://api.discogs.com/masters/${v.vinyl_id}`)
+      }))).map(v => v.data)
+      // Add api returned results to vinyls objects
+      return vinyls.map((vinyl, i) => Object.assign(results[i], vinyl.toObject()))
     })
     // respond with status 200 and JSON of the vinyls
     .then(vinyls => res.status(200).json({ vinyls: vinyls }))
@@ -60,6 +73,7 @@ router.get('/vinyls/:id', requireToken, (req, res) => {
 // POST /vinyls
 router.post('/vinyls', requireToken, (req, res) => {
   // set owner of new vinyl to be current user
+  console.log(req.body)
   req.body.vinyl.owner = req.user.id
 
   Vinyl.create(req.body.vinyl)

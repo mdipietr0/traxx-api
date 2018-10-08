@@ -5,6 +5,10 @@ const vinylSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  cover_image: {
+    type: String,
+    required: true
+  },
   collection_type: {
     type: String,
     required: true
