@@ -12,6 +12,9 @@ const requireToken = passport.authenticate('bearer', { session: false })
 // instantiate a router (mini app that only handles routes)
 const router = express.Router()
 
+const dotenv = require('dotenv')
+dotenv.config()
+
 const nodemailer = require('nodemailer')
 
 // CREATE
@@ -28,8 +31,8 @@ router.post('/mailer', requireToken, (req, res) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'dipietro.michael@gmail.com', // generated ethereal user
-      pass: 'fender72TELE$$$' // generated ethereal password
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASSWORD
     }
   })
 
