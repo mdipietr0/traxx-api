@@ -15,6 +15,9 @@ const router = express.Router()
 const dotenv = require('dotenv')
 dotenv.config()
 
+console.log(process.env.GMAIL_USER)
+console.log(process.env.GMAIL_PASSWORD)
+
 const nodemailer = require('nodemailer')
 
 // CREATE
@@ -41,7 +44,9 @@ router.post('/mailer', requireToken, (req, res) => {
   // send mail with defined transport object
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      return console.log(error)
+      console.log(error)
+      res.status(500).json({success: 'failure'})
+      return
     }
     console.log('Message sent: %s', info.messageId)
     // Preview only available when sending through an Ethereal account
