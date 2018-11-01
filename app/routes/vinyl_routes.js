@@ -33,28 +33,31 @@ const axios = require('axios')
 
 // INDEX
 // GET /vinyls
-router.get('/vinyls', requireToken, (req, res) => {
-  Vinyl.find({owner: req.user._id})
-    // get back a list of records containing vinyl_id
-    // this id is used to then fetch data from the discogs api
+router.get('/vinyls', requireToken, async (req, res, next) => {
+  try {
+    // search db for all vinyls owned by user
+    // returns a list of records containing vinyl_id
+    let vinyls = await Vinyl.find({owner: req.user._id})
     // map through each of the vinyls returned from the db and make
-    // request to api with axios.
-    // the map will results in an array of promises which is then
-    // passed into Promise.all which resolves when every promise in
-    // then array resolves.
+    // request to api with axios. Each call to axios() returns a promise
+    // whether successful or not.
+    let results = vinyls.map(v => (
+      axios(`https://api.discogs.com/masters/${v.vinyl_id}`)
+    ))
     // Promise.all returns an array of all the promise values
     // return the data from each of the calls
-    .then(async vinyls => {
-      const results = (await Promise.all(vinyls.map(v => {
-        return axios(`https://api.discogs.com/masters/${v.vinyl_id}`)
-      }))).map(v => v.data)
-      // Add api returned results to vinyls objects
-      return vinyls.map((vinyl, i) => Object.assign(results[i], vinyl.toObject()))
-    })
+    results = await Promise.all(results)
+    // Merge api returned results with db returned vinyls objects
+    results = results.map(v => v.data)
+    vinyls = vinyls.map((vinyl, i) => ({...results[i], ...vinyl.toObject()}))
     // respond with status 200 and JSON of the vinyls
-    .then(vinyls => res.status(200).json({ vinyls: vinyls }))
-    // if an error occurs, pass it to the handler
-    .catch(err => handle(err, res))
+    res.status(200).json({ vinyls: vinyls })
+  } catch (err) {
+    // For some reason the custom handler does not send back 500.
+    // Client just hangs waiting
+    // handle(err, res)
+    next(err)
+  }
 })
 
 // SHOW
